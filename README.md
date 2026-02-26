@@ -1,50 +1,105 @@
-# Welcome to your Expo app 👋
+# KasirGo POS 🚀 
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**KasirGo** is a modern, offline-first Point of Sale (POS) solution built with React Native and Expo. Designed for speed, reliability, and a premium user experience, it allows small to medium businesses to manage inventory, track sales, and process transactions entirely on-device.
 
-## Get started
+---
 
-1. Install dependencies
+## ✨ Key Features
 
-   ```bash
-   npm install
-   ```
+- 💎 **Premium Modern UI**: Sleek, professional interface with glassmorphism effects and emerald/teal accents.
+- 🌓 **Dark/Light Mode**: Full support for system-wide or manual theme toggling with persistence.
+- 📱 **Onboarding Flow**: Guided 3-slide introduction for first-time users.
+- 🛒 **Smart Cashier**:
+    - Fast product selection with category filtering.
+    - Integrated barcode scanner for quick item entry.
+    - Dynamic cart management with change calculation.
+- 📦 **Inventory Management**:
+    - Full CRUD for products and categories.
+    - Track stock levels, SKUs, and barcodes.
+    - Supports cost price tracking for profit analysis.
+- 📊 **Insightful Reports**:
+    - Today's sales summary and transaction history.
+    - Detailed breakdowns including taxes (PPN) and discounts.
+- 💾 **Offline-First Storage**: Powered by SQLite for high performance without needing an internet connection.
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## 🛠️ Technology Stack
 
-In the output, you'll find options to open the app in a
+- **Framework**: [Expo](https://expo.dev/) (React Native)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
+- **Database**: [SQLite](https://docs.expo.dev/versions/latest/sdk/sqlite/) (via `expo-sqlite`)
+- **Routing**: [Expo Router](https://docs.expo.dev/router/introduction/) (File-based)
+- **Styling**: Custom Design System (Themed)
+- **Icons**: Ionicons (@expo/vector-icons)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🏗️ Project Structure
 
-## Get a fresh project
-
-When you're ready, run:
+The project follows a modular architecture for better maintainability:
 
 ```bash
-npm run reset-project
+src/
+├── components/     # Reusable UI components (Button, Card, Input, Header)
+├── database/       # SQLite schema and initialization (db.ts)
+├── hooks/          # Custom Reat hooks (useTheme, useCart)
+├── screens/        # Screen implementations (Cashier, Product, History, etc.)
+├── store/          # Zustand store for state management
+├── theme/          # Design tokens and ThemeContext
+└── utils/          # Helper functions and formatting utilities
+
+app/                # Expo Router file-based pages
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 🚀 Getting Started
 
-To learn more about developing your project with Expo, look at the following resources:
+### Prerequisites
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Node.js (Latest LTS)
+- npm or yarn
+- Expo Go app on your mobile device (to test)
 
-## Join the community
+### Installation
 
-Join our community of developers creating universal apps.
+1.  **Clone the repository**:
+    ```bash
+    git clone git@github.com:urmommine/KasirGo.git
+    cd kasirgo
+    ```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+
+3.  **Start the development server**:
+    ```bash
+    npx expo start
+    ```
+
+4.  **Open the app**:
+    Scan the QR code displayed in the terminal with your **Expo Go** app (Android) or **Camera app** (iOS).
+
+---
+
+## 💾 Database Schema
+
+KasirGo uses a robust SQLite schema with automated migrations. Key tables include:
+- `products`: Items with SKU, barcode, price, and stock info.
+- `categories`: Product groupings.
+- `transactions`: Core sales data.
+- `transaction_items`: Line items for each sale.
+- `settings`: Store profile and tax configurations.
+
+---
+
+## 📝 License
+
+This project is private and intended for internal use.
+
+---
+
+*Built with ❤️ by the KasirGo Team.*

@@ -7,9 +7,15 @@ import { useTheme } from '../theme';
 import { borderRadius, getShadow, spacing, typography } from '../theme/theme';
 import { resetOnboarding } from './OnboardingScreen';
 
+type TabType = 'management' | 'profile' | 'info';
+
 export default function SettingsScreen() {
     const router = useRouter();
     const { colors, mode, isDark, toggleTheme } = useTheme();
+
+    // Sort columns: 1. Management, 2. Store Profile, 3. App Info
+    const [activeTab, setActiveTab] = useState<TabType>('management');
+
     const [storeName, setStoreName] = useState('');
     const [storeAddress, setStoreAddress] = useState('');
     const [taxRate, setTaxRate] = useState('0');
@@ -78,205 +84,283 @@ export default function SettingsScreen() {
         </TouchableOpacity>
     );
 
+    const TabButton = ({ tab, title, icon }: { tab: TabType; title: string; icon: keyof typeof Ionicons.glyphMap }) => {
+        const isActive = activeTab === tab;
+        return (
+            <TouchableOpacity
+                style={[
+                    styles.tabBtn,
+                    isActive
+                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                        : { backgroundColor: colors.surface, borderColor: colors.border }
+                ]}
+                onPress={() => setActiveTab(tab)}
+                activeOpacity={0.7}
+            >
+                <Ionicons name={icon} size={20} color={isActive ? '#fff' : colors.textMuted} />
+                <Text
+                    style={[
+                        styles.tabText,
+                        {
+                            color: isActive ? '#fff' : colors.textMuted,
+                            fontWeight: isActive ? typography.fontWeight.bold : typography.fontWeight.medium
+                        }
+                    ]}
+                >
+                    {title}
+                </Text>
+            </TouchableOpacity>
+        );
+    };
+
+    const renderManagementDataTab = () => (
+        <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Manajemen Data</Text>
+
+            <SettingMenuButton
+                title="Daftar Produk"
+                subtitle="Kelola stok, harga, dan barcode"
+                icon="cube-outline"
+                iconColor="#F59E0B"
+                onPress={() => router.push('/products')}
+            />
+
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            <SettingMenuButton
+                title="Kategori Produk"
+                subtitle="Kelola kategori makanan, minuman, dll"
+                icon="list-outline"
+                iconColor="#10B981"
+                onPress={() => router.push('/categories')}
+            />
+
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            <SettingMenuButton
+                title="Riwayat Transaksi"
+                subtitle="Lihat dan hapus riwayat"
+                icon="time-outline"
+                iconColor="#3B82F6"
+                onPress={() => router.push('/history')}
+            />
+        </View>
+    );
+
+    const renderStoreProfileTab = () => (
+        <>
+            {/* Store Profile Section */}
+            <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Profil Toko</Text>
+
+                <View style={styles.formGroup}>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>Nama Toko</Text>
+                    <TextInput
+                        style={[
+                            styles.input,
+                            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text },
+                        ]}
+                        value={storeName}
+                        onChangeText={setStoreName}
+                        placeholder="Nama Toko Anda"
+                        placeholderTextColor={colors.textMuted}
+                    />
+                </View>
+
+                <View style={styles.formGroup}>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>Alamat Toko</Text>
+                    <TextInput
+                        style={[
+                            styles.input,
+                            styles.textArea,
+                            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text },
+                        ]}
+                        value={storeAddress}
+                        onChangeText={setStoreAddress}
+                        placeholder="Alamat lengkap..."
+                        placeholderTextColor={colors.textMuted}
+                        multiline
+                        numberOfLines={3}
+                    />
+                </View>
+
+                <TouchableOpacity
+                    style={[styles.saveBtn, { backgroundColor: colors.primary }]}
+                    onPress={handleSave}
+                >
+                    <Ionicons name="checkmark" size={20} color="#fff" style={{ marginRight: spacing.sm }} />
+                    <Text style={styles.saveBtnText}>Simpan Perubahan</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Tax Section - Moved into Setting Profile according to task */}
+            <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Pajak & Biaya</Text>
+
+                <View style={styles.settingRow}>
+                    <View style={styles.settingInfo}>
+                        <Ionicons name="receipt-outline" size={24} color={colors.primary} style={styles.settingIcon} />
+                        <View>
+                            <Text style={[styles.settingLabel, { color: colors.text }]}>Aktifkan Pajak (Inclusive)</Text>
+                            <Text style={[styles.settingDescription, { color: colors.textMuted }]}>Pajak sudah termasuk dalam harga</Text>
+                        </View>
+                    </View>
+                    <Switch
+                        value={enableTax}
+                        onValueChange={setEnableTax}
+                        trackColor={{ false: colors.border, true: colors.primaryLight }}
+                        thumbColor={enableTax ? colors.primary : colors.textMuted}
+                    />
+                </View>
+
+                {enableTax && (
+                    <View style={[styles.formGroup, { marginTop: spacing.lg }]}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Persentase Pajak (%)</Text>
+                        <TextInput
+                            style={[
+                                styles.input,
+                                { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text },
+                            ]}
+                            value={taxRate}
+                            onChangeText={setTaxRate}
+                            placeholder="Contoh: 11"
+                            placeholderTextColor={colors.textMuted}
+                            keyboardType="numeric"
+                        />
+                    </View>
+                )}
+
+                <TouchableOpacity
+                    style={[styles.saveBtn, { backgroundColor: colors.primary, marginTop: spacing.md }]}
+                    onPress={handleSave}
+                >
+                    <Ionicons name="checkmark" size={20} color="#fff" style={{ marginRight: spacing.sm }} />
+                    <Text style={styles.saveBtnText}>Simpan Pengaturan Pajak</Text>
+                </TouchableOpacity>
+            </View>
+        </>
+    );
+
+    const renderAppInfoTab = () => (
+        <>
+            {/* Theme Section */}
+            <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Tampilan</Text>
+
+                <View style={styles.settingRow}>
+                    <View style={styles.settingInfo}>
+                        <Ionicons
+                            name={isDark ? 'moon' : 'sunny'}
+                            size={24}
+                            color={colors.primary}
+                            style={styles.settingIcon}
+                        />
+                        <View>
+                            <Text style={[styles.settingLabel, { color: colors.text }]}>Mode Gelap</Text>
+                            <Text style={[styles.settingDescription, { color: colors.textMuted }]}>
+                                {isDark ? 'Aktif' : 'Nonaktif'}
+                            </Text>
+                        </View>
+                    </View>
+                    <Switch
+                        value={isDark}
+                        onValueChange={toggleTheme}
+                        trackColor={{ false: colors.border, true: colors.primaryLight }}
+                        thumbColor={isDark ? colors.primary : colors.textMuted}
+                    />
+                </View>
+            </View>
+
+            {/* About Section */}
+            <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Tentang Aplikasi</Text>
+
+                <View style={styles.aboutContent}>
+                    <View style={[styles.logoContainer, { backgroundColor: colors.primaryLight }]}>
+                        <Ionicons name="storefront" size={48} color={colors.primary} />
+                    </View>
+                    <Text style={[styles.appName, { color: colors.primary }]}>KasirGo</Text>
+                    <Text style={[styles.version, { color: colors.textMuted }]}>Versi 1.0.0</Text>
+                    <Text style={[styles.desc, { color: colors.textSecondary }]}>
+                        Aplikasi kasir offline-first sederhana untuk UMKM Indonesia.
+                    </Text>
+                </View>
+            </View>
+
+            {/* Debug Section */}
+            <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Debug</Text>
+
+                <TouchableOpacity
+                    style={[styles.debugBtn, { borderColor: colors.warning }]}
+                    onPress={handleResetOnboarding}
+                >
+                    <Ionicons name="refresh" size={20} color={colors.warning} style={{ marginRight: spacing.sm }} />
+                    <Text style={[styles.debugBtnText, { color: colors.warning }]}>Reset Onboarding</Text>
+                </TouchableOpacity>
+            </View>
+        </>
+    );
+
     return (
         <KeyboardAvoidingView
-            style={{ flex: 1 }}
+            style={{ flex: 1, backgroundColor: colors.background }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
+            <Stack.Screen options={{ title: 'Pengaturan' }} />
+
+            {/* Top Tabs Navigation */}
+            <View style={[styles.tabsContainer, { backgroundColor: colors.cardBackground, borderBottomColor: colors.border }]}>
+                <TabButton tab="management" title="Manajemen" icon="cube-outline" />
+                <TabButton tab="profile" title="Toko & Pajak" icon="storefront-outline" />
+                <TabButton tab="info" title="Info Aplikasi" icon="information-circle-outline" />
+            </View>
+
             <ScrollView
-                style={[styles.container, { backgroundColor: colors.background }]}
-                contentContainerStyle={{ paddingBottom: spacing['4xl'] }}
+                style={styles.container}
+                contentContainerStyle={{ paddingBottom: spacing['4xl'], paddingTop: spacing.md }}
                 keyboardShouldPersistTaps="handled"
             >
-                <Stack.Screen options={{ title: 'Pengaturan' }} />
-
-                {/* Manajemen Data Section (Migrated from Home) */}
-                <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Manajemen Data</Text>
-
-                    <SettingMenuButton
-                        title="Daftar Produk"
-                        subtitle="Kelola stok, harga, dan barcode"
-                        icon="cube-outline"
-                        iconColor="#F59E0B"
-                        onPress={() => router.push('/products')}
-                    />
-
-                    <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-                    <SettingMenuButton
-                        title="Kategori Produk"
-                        subtitle="Kelola kategori makanan, minuman, dll"
-                        icon="list-outline"
-                        iconColor="#10B981"
-                        onPress={() => router.push('/categories')}
-                    />
-
-                    <View style={[styles.separator, { backgroundColor: colors.border }]} />
-
-                    <SettingMenuButton
-                        title="Riwayat Transaksi"
-                        subtitle="Lihat dan hapus riwayat"
-                        icon="time-outline"
-                        iconColor="#3B82F6"
-                        onPress={() => router.push('/history')}
-                    />
-                </View>
-
-                {/* Theme Section */}
-                <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Tampilan</Text>
-
-                    <View style={styles.settingRow}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons
-                                name={isDark ? 'moon' : 'sunny'}
-                                size={24}
-                                color={colors.primary}
-                                style={styles.settingIcon}
-                            />
-                            <View>
-                                <Text style={[styles.settingLabel, { color: colors.text }]}>Mode Gelap</Text>
-                                <Text style={[styles.settingDescription, { color: colors.textMuted }]}>
-                                    {isDark ? 'Aktif' : 'Nonaktif'}
-                                </Text>
-                            </View>
-                        </View>
-                        <Switch
-                            value={isDark}
-                            onValueChange={toggleTheme}
-                            trackColor={{ false: colors.border, true: colors.primaryLight }}
-                            thumbColor={isDark ? colors.primary : colors.textMuted}
-                        />
-                    </View>
-                </View>
-
-                {/* Store Profile Section */}
-                <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Profil Toko</Text>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Nama Toko</Text>
-                        <TextInput
-                            style={[
-                                styles.input,
-                                { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text },
-                            ]}
-                            value={storeName}
-                            onChangeText={setStoreName}
-                            placeholder="Nama Toko Anda"
-                            placeholderTextColor={colors.textMuted}
-                        />
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Alamat Toko</Text>
-                        <TextInput
-                            style={[
-                                styles.input,
-                                styles.textArea,
-                                { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text },
-                            ]}
-                            value={storeAddress}
-                            onChangeText={setStoreAddress}
-                            placeholder="Alamat lengkap..."
-                            placeholderTextColor={colors.textMuted}
-                            multiline
-                            numberOfLines={3}
-                        />
-                    </View>
-
-                    <TouchableOpacity
-                        style={[styles.saveBtn, { backgroundColor: colors.primary }]}
-                        onPress={handleSave}
-                    >
-                        <Ionicons name="checkmark" size={20} color="#fff" style={{ marginRight: spacing.sm }} />
-                        <Text style={styles.saveBtnText}>Simpan Perubahan</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Tax Section */}
-                <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Pajak & Biaya</Text>
-
-                    <View style={styles.settingRow}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons name="receipt-outline" size={24} color={colors.primary} style={styles.settingIcon} />
-                            <View>
-                                <Text style={[styles.settingLabel, { color: colors.text }]}>Aktifkan Pajak (Inclusive)</Text>
-                                <Text style={[styles.settingDescription, { color: colors.textMuted }]}>Pajak sudah termasuk dalam harga</Text>
-                            </View>
-                        </View>
-                        <Switch
-                            value={enableTax}
-                            onValueChange={setEnableTax}
-                            trackColor={{ false: colors.border, true: colors.primaryLight }}
-                            thumbColor={enableTax ? colors.primary : colors.textMuted}
-                        />
-                    </View>
-
-                    {enableTax && (
-                        <View style={[styles.formGroup, { marginTop: spacing.lg }]}>
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>Persentase Pajak (%)</Text>
-                            <TextInput
-                                style={[
-                                    styles.input,
-                                    { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text },
-                                ]}
-                                value={taxRate}
-                                onChangeText={setTaxRate}
-                                placeholder="Contoh: 11"
-                                placeholderTextColor={colors.textMuted}
-                                keyboardType="numeric"
-                            />
-                        </View>
-                    )}
-
-                    <TouchableOpacity
-                        style={[styles.saveBtn, { backgroundColor: colors.primary, marginTop: spacing.md }]}
-                        onPress={handleSave}
-                    >
-                        <Ionicons name="checkmark" size={20} color="#fff" style={{ marginRight: spacing.sm }} />
-                        <Text style={styles.saveBtnText}>Simpan Pengaturan Pajak</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* About Section */}
-                <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Tentang Aplikasi</Text>
-
-                    <View style={styles.aboutContent}>
-                        <View style={[styles.logoContainer, { backgroundColor: colors.primaryLight }]}>
-                            <Ionicons name="storefront" size={48} color={colors.primary} />
-                        </View>
-                        <Text style={[styles.appName, { color: colors.primary }]}>KasirGo</Text>
-                        <Text style={[styles.version, { color: colors.textMuted }]}>Versi 1.0.0</Text>
-                        <Text style={[styles.desc, { color: colors.textSecondary }]}>
-                            Aplikasi kasir offline-first sederhana untuk UMKM Indonesia.
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Debug Section */}
-                <View style={[styles.section, { backgroundColor: colors.cardBackground }, getShadow(mode, 'sm')]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Debug</Text>
-
-                    <TouchableOpacity
-                        style={[styles.debugBtn, { borderColor: colors.warning }]}
-                        onPress={handleResetOnboarding}
-                    >
-                        <Ionicons name="refresh" size={20} color={colors.warning} style={{ marginRight: spacing.sm }} />
-                        <Text style={[styles.debugBtnText, { color: colors.warning }]}>Reset Onboarding</Text>
-                    </TouchableOpacity>
-                </View>
+                {activeTab === 'management' && renderManagementDataTab()}
+                {activeTab === 'profile' && renderStoreProfileTab()}
+                {activeTab === 'info' && renderAppInfoTab()}
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: spacing.lg },
+    container: { flex: 1, paddingHorizontal: spacing.lg },
+    tabsContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.md,
+        paddingBottom: spacing.sm,
+        borderBottomWidth: 1,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    tabBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.xs,
+        marginHorizontal: spacing.xs,
+        borderRadius: borderRadius.lg,
+        borderWidth: 1,
+        minHeight: 44, // Mobile touch target size best practice
+    },
+    tabText: {
+        marginLeft: spacing.xs,
+        fontSize: typography.fontSize.xs,
+        textAlign: 'center',
+    },
     section: {
         borderRadius: borderRadius.xl,
         padding: spacing.xl,
@@ -295,6 +379,8 @@ const styles = StyleSheet.create({
     settingInfo: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
+        paddingRight: spacing.md,
     },
     settingIcon: {
         marginRight: spacing.md,
@@ -315,6 +401,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.md,
         borderRadius: borderRadius.lg,
+        minHeight: 50,
     },
     menuIconContainer: {
         width: 44,
@@ -345,6 +432,7 @@ const styles = StyleSheet.create({
         borderRadius: borderRadius.lg,
         padding: spacing.md,
         fontSize: typography.fontSize.lg,
+        minHeight: 48,
     },
     textArea: { height: 80, textAlignVertical: 'top' },
     saveBtn: {
@@ -354,6 +442,7 @@ const styles = StyleSheet.create({
         borderRadius: borderRadius.lg,
         padding: spacing.lg,
         marginTop: spacing.sm,
+        minHeight: 48,
     },
     saveBtnText: { color: '#fff', fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
     aboutContent: {
@@ -377,9 +466,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: borderRadius.lg,
         padding: spacing.md,
+        minHeight: 48,
     },
     debugBtnText: {
         fontSize: typography.fontSize.md,
         fontWeight: typography.fontWeight.medium,
+        marginLeft: spacing.sm,
     },
 });

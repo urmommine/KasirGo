@@ -20,6 +20,7 @@ export default function CartScreen() {
     const [showTrxDiscountModal, setShowTrxDiscountModal] = useState(false);
     const [trxDiscountInput, setTrxDiscountInput] = useState(transactionDiscount.value.toString());
     const [trxDiscountType, setTrxDiscountType] = useState<'fixed' | 'percentage'>(transactionDiscount.type);
+    const [expandedDiscountItemId, setExpandedDiscountItemId] = useState<number | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -58,9 +59,13 @@ export default function CartScreen() {
             const transactionId = result.lastInsertRowId;
 
             items.forEach(item => {
+                const itemDiscountAmt = item.discountType === 'percentage'
+                    ? (item.price * item.discount) / 100
+                    : item.discount;
+
                 db.runSync(
                     'INSERT INTO transaction_items (transaction_id, product_id, price, cost_price, qty, subtotal, discount) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [transactionId, item.id, item.price, item.cost_price || 0, item.qty, (item.price - item.discount) * item.qty, item.discount]
+                    [transactionId, item.id, item.price, item.cost_price || 0, item.qty, (item.price - itemDiscountAmt) * item.qty, itemDiscountAmt]
                 );
 
                 if (item.use_stock === 1) {
@@ -117,158 +122,215 @@ export default function CartScreen() {
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
-                    renderItem={({ item }) => (
-                        <View style={[
-                            styles.itemCard,
-                            { backgroundColor: colors.cardBackground },
-                            getShadow(mode, 'sm'),
-                        ]}>
-                            <View style={styles.itemInfo}>
-                                <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
-                                <Text style={[styles.itemPrice, { color: colors.textSecondary }]}>
-                                    @ Rp {item.price.toLocaleString('id-ID')}
-                                </Text>
-                            </View>
-                            <View style={[styles.qtyContainer, { backgroundColor: colors.backgroundSecondary }]}>
-                                <TouchableOpacity
-                                    onPress={() => updateQty(item.id, item.qty - 1)}
-                                    style={styles.qtyBtn}
-                                >
-                                    <Ionicons name="remove" size={16} color={colors.text} />
-                                </TouchableOpacity>
-                                <Text style={[styles.qtyText, { color: colors.text }]}>{item.qty}</Text>
-                                <TouchableOpacity
-                                    onPress={() => updateQty(item.id, item.qty + 1)}
-                                    style={styles.qtyBtn}
-                                >
-                                    <Ionicons name="add" size={16} color={colors.text} />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={styles.itemFinancials}>
-                                <Text style={[styles.itemSubtotal, { color: colors.text }] as any}>
-                                    Rp {((item.price - item.discount) * item.qty).toLocaleString('id-ID')}
-                                </Text>
-                                <View style={styles.discountInputWrapper}>
-                                    <Text style={[styles.discountLabel, { color: colors.textMuted }] as any}>Disc:</Text>
-                                    <TextInput
-                                        style={[styles.itemDiscountInput, { color: colors.error }] as any}
-                                        value={item.discount.toString()}
-                                        onChangeText={(val) => setItemDiscount(item.id, parseInt(val) || 0)}
-                                        keyboardType="numeric"
-                                        placeholder="0"
-                                    />
+                    renderItem={({ item }) => {
+                        const itemDiscountAmt = item.discountType === 'percentage'
+                            ? (item.price * item.discount) / 100
+                            : item.discount;
+
+                        return (
+                            <View style={[
+                                styles.itemCardContainer,
+                                { backgroundColor: colors.cardBackground },
+                                getShadow(mode, 'sm'),
+                            ]}>
+                                <View style={styles.itemCard}>
+                                    <View style={styles.itemInfo}>
+                                        <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
+                                        <Text style={[styles.itemPrice, { color: colors.textSecondary }]}>
+                                            @ Rp {item.price.toLocaleString('id-ID')}
+                                        </Text>
+                                    </View>
+                                    <View style={[styles.qtyContainer, { backgroundColor: colors.backgroundSecondary }]}>
+                                        <TouchableOpacity
+                                            onPress={() => updateQty(item.id, item.qty - 1)}
+                                            style={styles.qtyBtn}
+                                        >
+                                            <Ionicons name="remove" size={16} color={colors.text} />
+                                        </TouchableOpacity>
+                                        <Text style={[styles.qtyText, { color: colors.text }]}>{item.qty}</Text>
+                                        <TouchableOpacity
+                                            onPress={() => updateQty(item.id, item.qty + 1)}
+                                            style={styles.qtyBtn}
+                                        >
+                                            <Ionicons name="add" size={16} color={colors.text} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={styles.itemFinancials}>
+                                        <Text style={[styles.itemSubtotal, { color: colors.text }] as any}>
+                                            Rp {((item.price - itemDiscountAmt) * item.qty).toLocaleString('id-ID')}
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={styles.discountToggleBtn}
+                                            onPress={() => setExpandedDiscountItemId(expandedDiscountItemId === item.id ? null : item.id)}
+                                        >
+                                            <Ionicons name="pricetag-outline" size={12} color={item.discount > 0 ? colors.error : colors.textMuted} style={{ marginRight: 4 }} />
+                                            <Text
+                                                style={[styles.discountToggleText, { color: item.discount > 0 ? colors.error : colors.textMuted }]}
+                                                numberOfLines={1}
+                                                ellipsizeMode="tail"
+                                            >
+                                                {item.discount > 0
+                                                    ? `Disc: ${item.discountType === 'percentage' ? `${item.discount}%` : `Rp ${item.discount.toLocaleString('id-ID')}`}`
+                                                    : '+ Diskon'}
+                                            </Text>
+                                            <Ionicons name={expandedDiscountItemId === item.id ? "chevron-up" : "chevron-down"} size={12} color={item.discount > 0 ? colors.error : colors.textMuted} style={{ marginLeft: 4 }} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <TouchableOpacity onPress={() => removeFromCart(item.id)} style={styles.deleteBtn}>
+                                        <Ionicons name="trash-outline" size={20} color={colors.error} />
+                                    </TouchableOpacity>
                                 </View>
+
+                                {/* Expanded Discount Container */}
+                                {expandedDiscountItemId === item.id && (
+                                    <View style={[styles.itemDiscountExpandedContainer, { backgroundColor: colors.backgroundSecondary }]}>
+                                        <Text style={[styles.itemDiscountExpandedLabel, { color: colors.textSecondary }]}>Diskon per Item:</Text>
+                                        <View style={styles.itemDiscountRow}>
+                                            <View style={[styles.typeChooser, { flex: 1, marginBottom: 0, marginRight: spacing.sm }]}>
+                                                <TouchableOpacity
+                                                    style={[styles.typeBtn, item.discountType === 'fixed' && { backgroundColor: colors.primary }]}
+                                                    onPress={() => setItemDiscount(item.id, item.discount, 'fixed')}
+                                                >
+                                                    <Text style={[styles.typeBtnText, item.discountType === 'fixed' && { color: '#fff' }]}>Rp</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[styles.typeBtn, item.discountType === 'percentage' && { backgroundColor: colors.primary }]}
+                                                    onPress={() => setItemDiscount(item.id, item.discount, 'percentage')}
+                                                >
+                                                    <Text style={[styles.typeBtnText, item.discountType === 'percentage' && { color: '#fff' }]}>%</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                            <TextInput
+                                                style={[styles.itemDiscountExpandedInput, { color: colors.text, borderColor: colors.border }]}
+                                                value={item.discount > 0 ? item.discount.toString() : ''}
+                                                onChangeText={(val) => setItemDiscount(item.id, parseInt(val) || 0, item.discountType)}
+                                                keyboardType="numeric"
+                                                placeholder="0"
+                                                placeholderTextColor={colors.textMuted}
+                                            />
+                                        </View>
+                                    </View>
+                                )}
                             </View>
-                            <TouchableOpacity onPress={() => removeFromCart(item.id)} style={styles.deleteBtn}>
-                                <Ionicons name="trash-outline" size={20} color={colors.error} />
-                            </TouchableOpacity>
-                        </View>
-                    )}
+                        )
+                    }}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Ionicons name="cart-outline" size={80} color={colors.textMuted} />
-                            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                            <Text style={[styles.emptyText, { color: colors.textMuted, fontSize: 20, fontWeight: 'bold' }]}>
                                 Keranjang kosong
                             </Text>
+                            <Text style={[styles.emptyText, { color: colors.textMuted, fontSize: 14, marginTop: spacing.xs, textAlign: 'center' }]}>
+                                Tambahkan beberapa produk ke keranjang untuk melakukan Transaksi
+                            </Text>
+                            <TouchableOpacity
+                                style={[styles.payBtn, { backgroundColor: colors.primary, marginTop: spacing.xl, paddingHorizontal: spacing.xl }]}
+                                onPress={() => router.push('/')}
+                            >
+                                <Ionicons name="calculator" size={24} color="#fff" style={{ marginRight: spacing.sm }} />
+                                <Text style={styles.payBtnText}>Ke menu Kasir</Text>
+                            </TouchableOpacity>
                         </View>
                     }
                 />
 
                 {/* Footer */}
-                <View style={[
-                    styles.footer,
-                    { backgroundColor: colors.cardBackground },
-                    getShadow(mode, 'lg'),
-                ]}>
-                    {/* Calculation Summary */}
-                    <View style={styles.summaryContainer}>
-                        <View style={styles.summaryRow}>
-                            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
-                            <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                Rp {subtotal.toLocaleString('id-ID')}
+                {items.length > 0 && (
+                    <View style={[
+                        styles.footer,
+                        { backgroundColor: colors.cardBackground },
+                        getShadow(mode, 'lg'),
+                    ]}>
+                        {/* Calculation Summary */}
+                        <View style={styles.summaryContainer}>
+                            <View style={styles.summaryRow}>
+                                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Subtotal</Text>
+                                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                    Rp {subtotal.toLocaleString('id-ID')}
+                                </Text>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.summaryRow}
+                                onPress={() => setShowTrxDiscountModal(true)}
+                            >
+                                <View style={styles.rowLabelWithIcon}>
+                                    <Ionicons name="pricetag-outline" size={16} color={colors.error} style={{ marginRight: 4 }} />
+                                    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Diskon Transaksi</Text>
+                                </View>
+                                <Text style={[styles.summaryValue, { color: colors.error }]}>
+                                    - Rp {discountTotal.toLocaleString('id-ID')}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {taxSettings.enable && (
+                                <View style={styles.summaryRow}>
+                                    <View style={styles.rowLabelWithIcon}>
+                                        <Ionicons name="receipt-outline" size={16} color={colors.primary} style={{ marginRight: 4 }} />
+                                        <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Pajak ({taxSettings.rate}%)</Text>
+                                    </View>
+                                    <Text style={[styles.summaryValue, { color: colors.text }]}>
+                                        + Rp {Math.round(taxTotal).toLocaleString('id-ID')}
+                                    </Text>
+                                </View>
+                            )}
+
+                            {payAmount > 0 && (
+                                <View style={[styles.summaryRow, { marginTop: 4, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: colors.border }]}>
+                                    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Kembalian</Text>
+                                    <Text style={[styles.summaryValue, { color: change >= 0 ? colors.success : colors.error }]}>
+                                        Rp {Math.max(0, change).toLocaleString('id-ID')}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Total */}
+                        <View style={styles.totalRow}>
+                            <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Total Bayar</Text>
+                            <Text style={[styles.totalValue, { color: colors.primary }]}>
+                                Rp {finalTotal.toLocaleString('id-ID')}
                             </Text>
                         </View>
 
+                        {/* Money Input */}
+                        <View style={[
+                            styles.inputContainer,
+                            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+                        ]}>
+                            <Ionicons name="cash-outline" size={24} color={colors.success} style={{ marginRight: spacing.md }} />
+                            <TextInput
+                                style={[styles.input, { color: colors.text }]}
+                                placeholder="Bayar"
+                                placeholderTextColor={colors.textMuted}
+                                keyboardType="numeric"
+                                value={moneyReceived}
+                                onChangeText={setMoneyReceived}
+                            />
+                        </View>
+
+                        {/* Quick Money Suggestions */}
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickMoneyContainer}>
+                            <QuickMoneyBtn amount={finalTotal} />
+                            <QuickMoneyBtn amount={Math.ceil(finalTotal / 10000) * 10000} />
+                            <QuickMoneyBtn amount={50000} />
+                            <QuickMoneyBtn amount={100000} />
+                        </ScrollView>
+
+                        {/* Pay Button */}
                         <TouchableOpacity
-                            style={styles.summaryRow}
-                            onPress={() => setShowTrxDiscountModal(true)}
+                            style={[
+                                styles.payBtn,
+                                { backgroundColor: canPay ? colors.success : colors.border },
+                            ]}
+                            onPress={handleProcessTransaction}
+                            disabled={!canPay}
                         >
-                            <View style={styles.rowLabelWithIcon}>
-                                <Ionicons name="pricetag-outline" size={16} color={colors.error} style={{ marginRight: 4 }} />
-                                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Diskon Transaksi</Text>
-                            </View>
-                            <Text style={[styles.summaryValue, { color: colors.error }]}>
-                                - Rp {discountTotal.toLocaleString('id-ID')}
-                            </Text>
+                            <Ionicons name="checkmark-circle" size={24} color="#fff" style={{ marginRight: spacing.sm }} />
+                            <Text style={styles.payBtnText}>Lanjut Pembayaran</Text>
                         </TouchableOpacity>
-
-                        {taxSettings.enable && (
-                            <View style={styles.summaryRow}>
-                                <View style={styles.rowLabelWithIcon}>
-                                    <Ionicons name="receipt-outline" size={16} color={colors.primary} style={{ marginRight: 4 }} />
-                                    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Pajak ({taxSettings.rate}%)</Text>
-                                </View>
-                                <Text style={[styles.summaryValue, { color: colors.text }]}>
-                                    + Rp {Math.round(taxTotal).toLocaleString('id-ID')}
-                                </Text>
-                            </View>
-                        )}
-
-                        {payAmount > 0 && (
-                            <View style={[styles.summaryRow, { marginTop: 4, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: colors.border }]}>
-                                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Kembalian</Text>
-                                <Text style={[styles.summaryValue, { color: change >= 0 ? colors.success : colors.error }]}>
-                                    Rp {Math.max(0, change).toLocaleString('id-ID')}
-                                </Text>
-                            </View>
-                        )}
                     </View>
-
-                    {/* Total */}
-                    <View style={styles.totalRow}>
-                        <Text style={[styles.totalLabel, { color: colors.textSecondary }]}>Total Bayar</Text>
-                        <Text style={[styles.totalValue, { color: colors.primary }]}>
-                            Rp {finalTotal.toLocaleString('id-ID')}
-                        </Text>
-                    </View>
-
-                    {/* Money Input */}
-                    <View style={[
-                        styles.inputContainer,
-                        { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
-                    ]}>
-                        <Ionicons name="cash-outline" size={24} color={colors.success} style={{ marginRight: spacing.md }} />
-                        <TextInput
-                            style={[styles.input, { color: colors.text }]}
-                            placeholder="Bayar"
-                            placeholderTextColor={colors.textMuted}
-                            keyboardType="numeric"
-                            value={moneyReceived}
-                            onChangeText={setMoneyReceived}
-                        />
-                    </View>
-
-                    {/* Quick Money Suggestions */}
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickMoneyContainer}>
-                        <QuickMoneyBtn amount={finalTotal} />
-                        <QuickMoneyBtn amount={Math.ceil(finalTotal / 10000) * 10000} />
-                        <QuickMoneyBtn amount={50000} />
-                        <QuickMoneyBtn amount={100000} />
-                    </ScrollView>
-
-                    {/* Pay Button */}
-                    <TouchableOpacity
-                        style={[
-                            styles.payBtn,
-                            { backgroundColor: canPay ? colors.success : colors.border },
-                        ]}
-                        onPress={handleProcessTransaction}
-                        disabled={!canPay}
-                    >
-                        <Ionicons name="checkmark-circle" size={24} color="#fff" style={{ marginRight: spacing.sm }} />
-                        <Text style={styles.payBtnText}>Lanjut Pembayaran</Text>
-                    </TouchableOpacity>
-                </View>
+                )}
 
                 {/* Transaction Discount Modal */}
                 {showTrxDiscountModal && (
@@ -327,10 +389,13 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     listContent: { padding: spacing.lg },
-    itemCard: {
-        padding: spacing.md,
+    itemCardContainer: {
         borderRadius: borderRadius.xl,
         marginBottom: spacing.sm,
+        overflow: 'hidden',
+    },
+    itemCard: {
+        padding: spacing.md,
         flexDirection: 'row',
         alignItems: 'center',
     },
@@ -435,24 +500,42 @@ const styles = StyleSheet.create({
         flex: 1.5,
         alignItems: 'flex-end',
     },
-    discountInputWrapper: {
+    discountToggleBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 4,
+        paddingVertical: 2,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#eee',
+        maxWidth: '100%',
     },
-    discountLabel: {
+    discountToggleText: {
         fontSize: 10,
         fontWeight: 'bold',
-        marginRight: 4,
+        flexShrink: 1,
     },
-    itemDiscountInput: {
+    itemDiscountExpandedContainer: {
+        padding: spacing.md,
+    },
+    itemDiscountExpandedLabel: {
         fontSize: 12,
         fontWeight: 'bold',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        minWidth: 40,
-        textAlign: 'right',
-        padding: 0,
+        marginBottom: spacing.xs,
+    },
+    itemDiscountRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    itemDiscountExpandedInput: {
+        borderWidth: 1,
+        borderRadius: 10,
+        padding: 8,
+        fontSize: 14,
+        textAlign: 'center',
+        fontWeight: 'bold',
+        flex: 1,
     },
     summaryContainer: {
         marginBottom: spacing.md,

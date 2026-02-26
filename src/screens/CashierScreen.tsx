@@ -298,6 +298,7 @@ const styles = StyleSheet.create({
         padding: spacing.md,
         marginBottom: spacing.md,
         minWidth: '45%',
+        maxWidth: '48%',
         overflow: 'hidden',
     },
     cardDisabled: { opacity: 0.7 },
@@ -338,10 +339,14 @@ const styles = StyleSheet.create({
         marginTop: spacing.xs,
     },
     categoriesWrapper: { marginBottom: spacing.md },
-    categoriesContent: { paddingHorizontal: spacing.lg, gap: spacing.sm },
-    categoryChip: {
+    categoriesContent: {
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.sm,
+        gap: spacing.sm
+    },
+    categoryChip: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
         borderRadius: borderRadius.full,
     },
     categoryText: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold },

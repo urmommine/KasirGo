@@ -1,24 +1,75 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { initDatabase } from "../src/database/db";
+import { checkOnboardingComplete, OnboardingScreen } from "../src/screens/OnboardingScreen";
+import { ThemeProvider, useTheme } from "../src/theme";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+// Inner layout that uses theme
+function RootLayoutInner() {
+  const { colors, isDark } = useTheme();
+  const [isLoading, setIsLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const dbInitialized = useRef(false);
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+  useEffect(() => {
+    const init = async () => {
+      // Initialize database ONLY ONCE
+      if (!dbInitialized.current) {
+        dbInitialized.current = true;
+        initDatabase();
+      }
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+      // Check if onboarding is complete
+      const onboardingComplete = await checkOnboardingComplete();
+      setNeedsOnboarding(!onboardingComplete);
+      setIsLoading(false);
+    };
+
+    init();
+  }, []);
+
+  // Show loading while checking
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Show onboarding directly (not as a route redirect)
+  if (needsOnboarding) {
+    return (
+      <>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <OnboardingScreen onComplete={() => setNeedsOnboarding(false)} />
+      </>
+    );
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <Stack screenOptions={{
+        headerStyle: { backgroundColor: colors.surface },
+        headerShadowVisible: false,
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: 'bold' },
+        contentStyle: { backgroundColor: colors.background },
+        animation: 'slide_from_right',
+      }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
-      <StatusBar style="auto" />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutInner />
     </ThemeProvider>
   );
 }

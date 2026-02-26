@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.jovarimp.kasirgo"
     },
     "web": {
       "output": "static",
@@ -38,11 +39,19 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "71438460-7012-42be-b02c-3e22521043b7"
+      }
+    },
+    "owner": "jovarimp"
   }
 }
